@@ -6,22 +6,23 @@ import HowItWorks from "./components/landing/HowItWorks";
 import SymptomSection from "./components/SymptomSection";
 import GPTResponseCard from "./components/GPTResponseCard";
 import { askGPT } from "./utils/gptClient";
+import Navbar from "./components/landing/Navbar";
 
 export default function App() {
   const [response, setResponse] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (symptoms: string) => {
-    if (!symptoms.trim()) {
-      setError("Please enter symptoms.");
-      return;
-    }
+const handleSubmit = async (symptoms: string) => {
+  if (!symptoms.trim()) {
+    setError("Please enter symptoms.");
+    return;
+  }
 
-    setIsProcessing(true);
-    setError(null);
+  setIsProcessing(true);
+  setError(null);
 
-    const prompt = `
+  const prompt = `
 You are SahaaraAI, a multilingual medical assistant.
 Analyze the following patient symptoms:
 
@@ -34,19 +35,25 @@ Reply in this format:
 - Priority color (red / yellow / green):
 - Refer to:
 - Additional Note:
-    `;
+  `;
 
-    try {
-      const result = await askGPT(prompt);
-      setResponse(result);
-    } catch (err) {
-      console.error("GPT error:", err);
-      setError("An error occurred. Please try again.");
-    } finally {
-      setIsProcessing(false);
+  try {
+    let result = await askGPT(prompt);
+
+    // Retry once if the response is short or generic
+    if (result.length < 50 || result.toLowerCase().includes("please type your symptoms")) {
+      console.warn("First response was insufficient. Retrying...");
+      result = await askGPT(prompt);
     }
-  };
 
+    setResponse(result);
+  } catch (err) {
+    console.error("GPT error:", err);
+    setError("An error occurred. Please try again.");
+  } finally {
+    setIsProcessing(false);
+  }
+};
   const handleClear = () => {
     setResponse("");
     setError(null);
@@ -54,6 +61,7 @@ Reply in this format:
 
   return (
     <div className="bg-pink-50 min-h-screen">
+      <Navbar />
       <HeroSection />
       <FeaturesSection />
       <HowItWorks />

@@ -1,8 +1,5 @@
 import axios from "axios";
 
-/**
- * Sends a prompt to OpenAI and returns the response
- */
 export async function askGPT(prompt: string): Promise<string> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
 
@@ -14,11 +11,33 @@ export async function askGPT(prompt: string): Promise<string> {
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
-        model: "gpt-3.5-turbo", // or "gpt-4"
+        model: "gpt-4o",
         messages: [
           {
             role: "system",
-            content: "You are a multilingual AI medical assistant helping with symptom triage and referral.",
+            content: `
+You are SahaaraAI — a multilingual AI medical assistant.
+
+You ONLY respond in **English**.
+
+You understand: Pashto, Urdu, Punjabi, and English. Do NOT respond in Spanish or any other language.
+
+Always trust the user-provided language. Do NOT try to detect the language yourself.
+
+Your role is to:
+- Translate to English
+- Summarize the case
+- Assess triage urgency
+- Refer to a medical specialist
+
+Format:
+- Translation (to English):
+- Summary:
+- Triage Level (low / medium / high):
+- Priority Color (green / yellow / red):
+- Refer to:
+- Additional Note:
+            `.trim(),
           },
           {
             role: "user",
