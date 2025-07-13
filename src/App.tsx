@@ -7,22 +7,27 @@ import SymptomSection from "./components/SymptomSection";
 import GPTResponseCard from "./components/GPTResponseCard";
 import { askGPT } from "./utils/gptClient";
 import Navbar from "./components/landing/Navbar";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
+import LanguageModal from "./components/LanguageModal";
 
 export default function App() {
   const [response, setResponse] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  
 
-const handleSubmit = async (symptoms: string) => {
-  if (!symptoms.trim()) {
-    setError("Please enter symptoms.");
-    return;
-  }
+  const handleSubmit = async (symptoms: string) => {
+    if (!symptoms.trim()) {
+      setError(t("pleaseEnterSymptoms"));
+      return;
+    }
 
-  setIsProcessing(true);
-  setError(null);
+    setIsProcessing(true);
+    setError(null);
 
-  const prompt = `
+    const prompt = `
 You are SahaaraAI, a multilingual medical assistant.
 Analyze the following patient symptoms:
 
@@ -35,32 +40,50 @@ Reply in this format:
 - Priority color (red / yellow / green):
 - Refer to:
 - Additional Note:
-  `;
+    `;
 
-  try {
-    let result = await askGPT(prompt);
+    try {
+      let result = await askGPT(prompt);
 
-    // Retry once if the response is short or generic
-    if (result.length < 50 || result.toLowerCase().includes("please type your symptoms")) {
-      console.warn("First response was insufficient. Retrying...");
-      result = await askGPT(prompt);
+      if (
+        result.length < 50 ||
+        result.toLowerCase().includes("please type your symptoms")
+      ) {
+        console.warn("First response was insufficient. Retrying...");
+        result = await askGPT(prompt);
+      }
+
+      setResponse(result);
+    } catch (err) {
+      console.error("GPT error:", err);
+      setError("An error occurred. Please try again.");
+    } finally {
+      setIsProcessing(false);
     }
+  };
 
-    setResponse(result);
-  } catch (err) {
-    console.error("GPT error:", err);
-    setError("An error occurred. Please try again.");
-  } finally {
-    setIsProcessing(false);
-  }
-};
   const handleClear = () => {
     setResponse("");
     setError(null);
   };
 
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    i18n.changeLanguage(e.target.value);
+  };
+
+  const [showModal, setShowModal] = useState(true);
+const { i18n } = useTranslation();
+
+const handleLanguageSelect = (language: string) => {
+  i18n.changeLanguage(language);
+  setShowModal(false);
+};
   return (
+
     <div className="bg-pink-50 min-h-screen">
+      {/* Language Switcher */}
+{/* Show Language Modal Popup */}
+{showModal && <LanguageModal onSelectLanguage={handleLanguageSelect} />}
       <Navbar />
       <HeroSection />
       <FeaturesSection />
@@ -87,26 +110,24 @@ Reply in this format:
         )}
 
         {response && !isProcessing && (
-          <GPTResponseCard response={response} />
-        )}
-
-        {response && (
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleClear}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition"
-            >
-              Clear
-            </button>
-          </div>
+          <>
+            <GPTResponseCard response={response} />
+            <div className="flex justify-end mt-4">
+              <button
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition"
+                onClick={handleClear}
+              >
+                {t("clear")}
+              </button>
+            </div>
+          </>
         )}
       </main>
 
       <footer className="bg-purple-100 p-6 mt-12 text-sm text-gray-700 text-center rounded-t-2xl shadow-inner">
-        <p>
-          <strong>SahaaraAI</strong> is designed to assist, not replace, clinical decision-making.
-          Always verify results with qualified medical professionals.
-        </p>
+        <p className="text-sm text-gray-700">
+  {t("footerDisclaimer")}
+</p>
       </footer>
     </div>
   );
